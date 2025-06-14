@@ -1,43 +1,32 @@
-
 const express = require('express');
-const axios = require('axios');
 const app = express();
+const axios = require('axios');
+
+// Middleware para aceitar JSON
 app.use(express.json());
 
-const PIXEL_ID = "595219590269152";
-const ACCESS_TOKEN = "EAAOqjZBgr90YBOy5mshB7p9wWZAH15ZBp3jOu8jZADZCT7dscUfKhPe80IJhwKuZCTsachvxv3B6dZBaNSu2HTq77ky6s8Bz0my28oYX59aMhHfeQX3cRBg49UrARoIPjWGGdEyMrCnzeg9CrdPXFKdvHqkHGOxrguiASiIj7p0Mjtz8P8Dd5jgYusw5WVkz4ZBWIwZDZD";
-const EVENT_NAME = "WhatsAppMessageSent";
-
-app.post('/webhook', async (req, res) => {
-  const message = req.body;
-
-  if (message && message.body && message.body.message) {
-    console.log('Mensagem recebida:', message.body.message);
-
-    try {
-      await axios.post(`https://graph.facebook.com/v19.0/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`, {
-        data: [{
-          event_name: EVENT_NAME,
-          event_time: Math.floor(Date.now() / 1000),
-          user_data: {
-            external_id: "user_" + message.body.sender
-          },
-          custom_data: {
-            message: message.body.message
-          }
-        }]
-      });
-      console.log('Evento enviado para o Facebook com sucesso.');
-    } catch (error) {
-      console.error('Erro ao enviar evento para o Facebook:', error.response ? error.response.data : error.message);
-    }
-
-    return res.sendStatus(200);
-  }
-
-  res.sendStatus(400);
+// Permitir CORS (acesso externo)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
 });
 
-app.listen(3000, () => {
-  console.log('Servidor rodando na porta 3000');
+// Teste simples com log
+app.post('/webhook', async (req, res) => {
+  console.log('✅ Webhook recebeu algo:');
+  console.log(JSON.stringify(req.body, null, 2));
+
+  // Se tiver message e sender, simula envio pro pixel
+  if (req.body.message && req.body.sender) {
+    console.log(`📤 Simulando envio para o pixel com: ${req.body.message}`);
+  }
+
+  res.status(200).send('Webhook recebeu com sucesso');
+});
+
+// Porta padrão Render
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
