@@ -10,8 +10,8 @@ app.post('/webhook', async (req, res) => {
   console.log('📩 Recebido:', req.body); // Log completo da requisição
 
   const data = req.body;
-  const message = data.message;
-  const sender = data.sender;
+  const message = data?.text?.message;
+  const sender = data?.phone;
 
   if (!message || !sender) {
     console.log('⚠️ Mensagem ou número não detectado');
