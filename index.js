@@ -1,18 +1,16 @@
 const express = require('express');
 const axios = require('axios');
+const crypto = require('crypto'); // ← IMPORTANTE
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Middleware para permitir JSON
 app.use(express.json());
 
-// Rota principal do webhook
 app.post('/webhook', async (req, res) => {
   console.log('📩 Webhook recebeu algo:');
   console.log(req.body);
 
   const data = req.body;
-
   const message = data?.text?.message;
   const sender = data?.phone;
 
@@ -21,7 +19,10 @@ app.post('/webhook', async (req, res) => {
     return res.status(200).send('Sem dados relevantes');
   }
 
-  // Dados do Pixel
+  // ⚠️ HASH do número de telefone
+  const cleanPhone = sender.replace(/\D/g, '');
+  const hashedPhone = crypto.createHash('sha256').update(cleanPhone).digest('hex');
+
   const pixelID = '595219590269152';
   const accessToken = 'EAAOqjZBgr90YBOy5mshB7p9wWZAH15ZBp3jOu8jZADZCT7dscUfKhPe80IJhwKuZCTsachvxv3B6dZBaNSu2HTq77ky6s8Bz0my28oYX59aMhHfeQX3cRBg49UrARoIPjWGGdEyMrCnzeg9CrdPXFKdvHqkHGOxrguiASiIj7p0Mjtz8P8Dd5jgYusw5WVkz4ZBWIwZDZD';
 
@@ -29,7 +30,7 @@ app.post('/webhook', async (req, res) => {
     event_name: 'MessageSent',
     event_time: Math.floor(Date.now() / 1000),
     user_data: {
-      ph: sender.replace(/\D/g, '') // Apenas números no telefone
+      ph: hashedPhone
     },
     custom_data: {
       content_name: message
@@ -51,7 +52,6 @@ app.post('/webhook', async (req, res) => {
   res.status(200).send('Recebido com sucesso');
 });
 
-// Inicializa servidor
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
