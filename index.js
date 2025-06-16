@@ -39,23 +39,14 @@ app.post('/webhook', async (req, res) => {
   };
 
   try {
-    const payload = {
-      data: [event],
-      test_event_code: 'TEST70263' // código de teste
-    };
-
     console.log('📤 Enviando pro Pixel:', message);
-
     const response = await axios.post(
-      `https://graph.facebook.com/v19.0/${pixelID}/events`,
-      payload,
+      `https://graph.facebook.com/v19.0/${pixelID}/events?access_token=${accessToken}`,
       {
-        params: {
-          access_token: accessToken
-        }
+        data: [event],
+        test_event_code: 'TEST70263'
       }
     );
-
     console.log('✅ Evento enviado com sucesso:', response.data);
   } catch (error) {
     console.error('❌ Erro ao enviar para o Pixel:', error.response?.data || error.message);
