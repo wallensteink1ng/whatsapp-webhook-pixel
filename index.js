@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
@@ -17,15 +18,19 @@ app.post('/webhook', async (req, res) => {
     return res.status(200).send('Recebido sem dados relevantes');
   }
 
+  const hashedPhone = crypto
+    .createHash('sha256')
+    .update(sender.replace(/\D/g, ''))
+    .digest('hex');
+
   const pixelID = '595219590269152';
   const accessToken = 'EAAOqjZBgr90YBOy5mshB7p9wWZAH15ZBp3jOu8jZADZCT7dscUfKhPe80IJhwKuZCTsachvxv3B6dZBaNSu2HTq77ky6s8Bz0my28oYX59aMhHfeQX3cRBg49UrARoIPjWGGdEyMrCnzeg9CrdPXFKdvHqkHGOxrguiASiIj7p0Mjtz8P8Dd5jgYusw5WVkz4ZBWIwZDZD';
-  const testEventCode = 'TEST70263'; // ← Aqui está o código de teste
 
   const event = {
     event_name: 'MessageSent',
     event_time: Math.floor(Date.now() / 1000),
     user_data: {
-      ph: require('crypto').createHash('sha256').update(sender.replace(/\D/g, '')).digest('hex')
+      ph: hashedPhone
     },
     custom_data: {
       content_name: message
@@ -39,7 +44,7 @@ app.post('/webhook', async (req, res) => {
       `https://graph.facebook.com/v19.0/${pixelID}/events?access_token=${accessToken}`,
       {
         data: [event],
-        test_event_code: testEventCode
+        test_event_code: 'TEST70263' // <- ISSO PRECISA ESTAR AQUI
       }
     );
     console.log('✅ Evento enviado com sucesso:', response.data);
