@@ -27,6 +27,11 @@ app.post('/webhook', async (req, res) => {
     .update(phone.replace(/\D/g, ''))
     .digest('hex');
 
+  const hashedCountry = crypto
+    .createHash('sha256')
+    .update('IE')
+    .digest('hex');
+
   const eventTime = momment ? Math.floor(Number(momment) / 1000) : Math.floor(Date.now() / 1000);
   const eventId = `${messageId}_${phone}`;
 
@@ -41,9 +46,9 @@ app.post('/webhook', async (req, res) => {
     event_id: eventId,
     user_data: {
       ph: hashedPhone,
+      country: hashedCountry,
       client_ip_address: '1.1.1.1',
-      client_user_agent: 'WhatsApp-Business-API',
-      country: 'IE'
+      client_user_agent: 'WhatsApp-Business-API'
     },
     custom_data: {
       message: message,
@@ -62,7 +67,7 @@ app.post('/webhook', async (req, res) => {
       `https://graph.facebook.com/v18.0/${pixelID}/events?access_token=${accessToken}`,
       {
         data: [event],
-        test_event_code: 'TEST70263' // Remover após testar
+        test_event_code: 'TEST70263' // Remover depois de testar
       }
     );
     console.log('✅ Evento enviado com sucesso:', response.data);
