@@ -66,8 +66,7 @@ app.post('/webhook', async (req, res) => {
     const response = await axios.post(
       `https://graph.facebook.com/v18.0/${pixelID}/events?access_token=${accessToken}`,
       {
-        data: [event],
-        test_event_code: 'TEST20679' // ✅ Atualizado com novo código de teste
+        data: [event]
       }
     );
     console.log('✅ Evento enviado com sucesso:', response.data);
