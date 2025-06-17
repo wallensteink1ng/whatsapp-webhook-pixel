@@ -23,7 +23,7 @@ app.post('/webhook', async (req, res) => {
   }
 
   const messageLower = message.toLowerCase();
-  if (!messageLower.includes('utm_source=meta')) {
+  if (!messageLower.includes('utm_meta')) {
     console.log('⛔ Ignorado: mensagem não veio de campanha Meta');
     return res.status(200).send('Mensagem fora do Meta ignorada');
   }
