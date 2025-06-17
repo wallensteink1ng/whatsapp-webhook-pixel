@@ -67,7 +67,7 @@ app.post('/webhook', async (req, res) => {
       `https://graph.facebook.com/v18.0/${pixelID}/events?access_token=${accessToken}`,
       {
         data: [event],
-        test_event_code: 'TEST70263' // Remover depois de testar
+        test_event_code: 'TEST20679' // ✅ Atualizado com novo código de teste
       }
     );
     console.log('✅ Evento enviado com sucesso:', response.data);
