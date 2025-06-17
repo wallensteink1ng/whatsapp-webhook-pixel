@@ -26,25 +26,29 @@ app.post('/webhook', async (req, res) => {
   const pixelID = '595219590269152';
   const accessToken = 'EAAOqjZBgr90YBOy5mshB7p9wWZAH15ZBp3jOu8jZADZCT7dscUfKhPe80IJhwKuZCTsachvxv3B6dZBaNSu2HTq77ky6s8Bz0my28oYX59aMhHfeQX3cRBg49UrARoIPjWGGdEyMrCnzeg9CrdPXFKdvHqkHGOxrguiASiIj7p0Mjtz8P8Dd5jgYusw5WVkz4ZBWIwZDZD';
 
+  // Usar o timestamp correto: do evento (Z-API) se existir, senão o atual
+  const eventTime = data?.momment ? Math.floor(Number(data.momment) / 1000) : Math.floor(Date.now() / 1000);
+
   const event = {
     event_name: 'MessageSent',
-    event_time: Math.floor(Date.now() / 1000),
+    event_time: eventTime,
     user_data: {
       ph: hashedPhone
+      // Você pode incluir client_ip_address e client_user_agent se tiver
     },
     custom_data: {
       content_name: message
     },
-    action_source: 'chat'
+    action_source: 'system_generated'
   };
 
   try {
     console.log('📤 Enviando pro Pixel:', message);
     const response = await axios.post(
-      `https://graph.facebook.com/v19.0/${pixelID}/events?access_token=${accessToken}`,
+      `https://graph.facebook.com/v18.0/${pixelID}/events?access_token=${accessToken}`,
       {
         data: [event],
-        test_event_code: 'TEST70263'
+        test_event_code: 'TEST70263' // remova isso depois de testar
       }
     );
     console.log('✅ Evento enviado com sucesso:', response.data);
