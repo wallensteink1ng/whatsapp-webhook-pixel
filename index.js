@@ -44,7 +44,6 @@ app.post('/webhook', async (req, res) => {
       client_ip_address: '1.1.1.1',
       client_user_agent: 'WhatsApp-Business-API',
       country: 'IE',
-      region: 'Leinster',
       city: 'Dublin'
     },
     custom_data: {
@@ -62,7 +61,7 @@ app.post('/webhook', async (req, res) => {
       `https://graph.facebook.com/v18.0/${pixelID}/events?access_token=${accessToken}`,
       {
         data: [event],
-        test_event_code: 'TEST70263' // 🔁 Substitua aqui pelo novo se for diferente!
+        test_event_code: 'TEST70263' // Pode remover depois de testar
       }
     );
     console.log('✅ Evento enviado com sucesso:', response.data);
