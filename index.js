@@ -12,41 +12,47 @@ app.post('/webhook', async (req, res) => {
 
   const message = data?.text?.message;
   const phone = data?.phone;
-  const senderName = data?.senderName || '';
-  const chatName = data?.chatName || '';
   const messageId = data?.messageId || '';
   const momment = data?.momment;
+  const senderName = data?.senderName || '';
+  const chatName = data?.chatName || '';
 
   if (!message || !phone) {
     console.log('⚠️ Mensagem ou número não detectado');
     return res.status(200).send('Recebido sem dados relevantes');
   }
 
-  // Hashear o telefone no padrão do Meta (SHA256)
   const hashedPhone = crypto
     .createHash('sha256')
     .update(phone.replace(/\D/g, ''))
     .digest('hex');
 
-  // Use o timestamp real se enviado pela Z-API, senão usa o atual
   const eventTime = momment ? Math.floor(Number(momment) / 1000) : Math.floor(Date.now() / 1000);
+  const eventId = `${messageId}_${phone}`;
 
-  const pixelID = '595219590269152';
-  const accessToken = 'EAAOqjZBgr90YBOy5mshB7p9wWZAH15ZBp3jOu8jZADZCT7dscUfKhPe80IJhwKuZCTsachvxv3B6dZBaNSu2HTq77ky6s8Bz0my28oYX59aMhHfeQX3cRBg49UrARoIPjWGGdEyMrCnzeg9CrdPXFKdvHqkHGOxrguiASiIj7p0Mjtz8P8Dd5jgYusw5WVkz4ZBWIwZDZD';
+  const pixelID = '1894086348055772';
+  const accessToken = 'EAAOqjZBgr90YBOzuHxXHoD7oQXEi93D9gnWh5BJOWUPX8fbo9yWfDViHxFV2unxPaU9JYPZA7ZA5O8FVQHZCcgtT9FKK4NP1ZBJG57SvaYmskISLtv9vnTRUbVtXShoHXzRwUw5wjZCFWWSn5ZBdtfyOrqrX9GqfweBNALZCkTt8LbHtPbA4y752ugMDKLEnRp0SxwZDZD';
 
   const event = {
     event_name: 'MessageSent',
     event_time: eventTime,
+    event_source_url: 'https://barbaracleaning.ie',
     action_source: 'system_generated',
+    event_id: eventId,
     user_data: {
-      ph: hashedPhone
+      ph: hashedPhone,
+      client_ip_address: '1.1.1.1',
+      client_user_agent: 'WhatsApp-Business-API',
+      country: 'IE',
+      region: 'Leinster',
+      city: 'Dublin'
     },
     custom_data: {
+      message: message,
       phone: phone,
       sender_name: senderName,
       chat_name: chatName,
-      message_id: messageId,
-      message: message
+      message_id: messageId
     }
   };
 
@@ -56,12 +62,12 @@ app.post('/webhook', async (req, res) => {
       `https://graph.facebook.com/v18.0/${pixelID}/events?access_token=${accessToken}`,
       {
         data: [event],
-        test_event_code: 'TEST70263' // ← ESSA LINHA FAZ APARECER NO TEST EVENTS
+        test_event_code: 'TEST70263' // 🔁 Substitua aqui pelo novo se for diferente!
       }
     );
     console.log('✅ Evento enviado com sucesso:', response.data);
   } catch (error) {
-    console.error('❌ Erro ao enviar para o Pixel:', error.response?.data || error.message);
+    console.error('❌ Erro ao enviar pro Pixel:', error.response?.data || error.message);
   }
 
   res.status(200).send('Evento recebido');
