@@ -43,15 +43,16 @@ app.post('/webhook', async (req, res) => {
       ph: hashedPhone,
       client_ip_address: '1.1.1.1',
       client_user_agent: 'WhatsApp-Business-API',
-      country: 'IE',
-      city: 'Dublin'
+      country: 'IE'
     },
     custom_data: {
       message: message,
       phone: phone,
       sender_name: senderName,
       chat_name: chatName,
-      message_id: messageId
+      message_id: messageId,
+      cidade: 'Dublin',
+      regiao: 'Leinster'
     }
   };
 
@@ -61,7 +62,7 @@ app.post('/webhook', async (req, res) => {
       `https://graph.facebook.com/v18.0/${pixelID}/events?access_token=${accessToken}`,
       {
         data: [event],
-        test_event_code: 'TEST70263' // Pode remover depois de testar
+        test_event_code: 'TEST70263' // Remover após testar
       }
     );
     console.log('✅ Evento enviado com sucesso:', response.data);
