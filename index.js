@@ -22,8 +22,8 @@ app.post('/webhook', async (req, res) => {
     return res.status(200).send('Recebido sem dados relevantes');
   }
 
-  const messageLower = message.toLowerCase();
-  if (!messageLower.includes('🔵')) {
+  // Verificação com caractere invisível \u200C (ZWNJ)
+  if (!message.includes('\u200C')) {
     console.log('⛔ Ignorado: mensagem não veio de campanha Meta');
     return res.status(200).send('Mensagem fora do Meta ignorada');
   }
