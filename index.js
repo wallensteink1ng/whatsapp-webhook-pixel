@@ -33,7 +33,7 @@ app.post('/webhook', async (req, res) => {
   const hashedCountry = crypto.createHash('sha256').update('IE').digest('hex');
   const hashedExternalId = crypto.createHash('sha256').update(cleanPhone).digest('hex');
 
-  const userIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  const userIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || '1.1.1.1';
   const userAgent = req.headers['user-agent'] || 'WhatsApp-Business-API';
 
   const eventTime = momment ? Math.floor(Number(momment) / 1000) : Math.floor(Date.now() / 1000);
