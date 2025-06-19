@@ -22,27 +22,25 @@ app.post('/webhook', async (req, res) => {
     return res.status(200).send('Recebido sem dados relevantes');
   }
 
-  const metaTag = '\u200C'; // caractere invisível para rastrear leads do Meta
+  const metaTag = '\u200C';
   if (!message.startsWith(metaTag)) {
     console.log('⛔ Ignorado: mensagem não veio de campanha Meta');
     return res.status(200).send('Mensagem fora do Meta ignorada');
   }
 
-  const hashedPhone = crypto
-    .createHash('sha256')
-    .update(phone.replace(/\D/g, ''))
-    .digest('hex');
+  const cleanPhone = phone.replace(/\D/g, '');
+  const hashedPhone = crypto.createHash('sha256').update(cleanPhone).digest('hex');
+  const hashedCountry = crypto.createHash('sha256').update('IE').digest('hex');
+  const hashedExternalId = crypto.createHash('sha256').update(cleanPhone).digest('hex');
 
-  const hashedCountry = crypto
-    .createHash('sha256')
-    .update('IE')
-    .digest('hex');
+  const userIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  const userAgent = req.headers['user-agent'] || 'WhatsApp-Business-API';
 
   const eventTime = momment ? Math.floor(Number(momment) / 1000) : Math.floor(Date.now() / 1000);
   const eventId = `${messageId}_${phone}`;
 
-  const pixelID = '1894086348055772';
-  const accessToken = 'EAAOqjZBgr90YBOzuHxXHoD7oQXEi93D9gnWh5BJOWUPX8fbo9yWfDViHxFV2unxPaU9JYPZA7ZA5O8FVQHZCcgtT9FKK4NP1ZBJG57SvaYmskISLtv9vnTRUbVtXShoHXzRwUw5wjZCFWWSn5ZBdtfyOrqrX9GqfweBNALZCkTt8LbHtPbA4y752ugMDKLEnRp0SxwZDZD';
+  const pixelID = process.env.PIXEL_ID;
+  const accessToken = process.env.ACCESS_TOKEN;
 
   const event = {
     event_name: 'MessageSent',
@@ -53,8 +51,9 @@ app.post('/webhook', async (req, res) => {
     user_data: {
       ph: hashedPhone,
       country: hashedCountry,
-      client_ip_address: '1.1.1.1',
-      client_user_agent: 'WhatsApp-Business-API'
+      external_id: hashedExternalId,
+      client_ip_address: userIp,
+      client_user_agent: userAgent
     },
     custom_data: {
       message: message,
@@ -71,9 +70,7 @@ app.post('/webhook', async (req, res) => {
     console.log('📤 Enviando pro Pixel:', message);
     const response = await axios.post(
       `https://graph.facebook.com/v18.0/${pixelID}/events?access_token=${accessToken}`,
-      {
-        data: [event]
-      }
+      { data: [event] }
     );
     console.log('✅ Evento enviado com sucesso:', response.data);
   } catch (error) {
@@ -83,7 +80,6 @@ app.post('/webhook', async (req, res) => {
   res.status(200).send('Evento recebido');
 });
 
-// 🚀 Inicia o servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
