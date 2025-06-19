@@ -22,8 +22,8 @@ app.post('/webhook', async (req, res) => {
     return res.status(200).send('Recebido sem dados relevantes');
   }
 
-  // Agora verificando se a mensagem começa com \u200C
-  if (!message.startsWith('\u200C')) {
+  const metaTag = '\u200C'; // Zero Width Non-Joiner
+  if (!message.startsWith(metaTag)) {
     console.log('⛔ Ignorado: mensagem não veio de campanha Meta');
     return res.status(200).send('Mensagem fora do Meta ignorada');
   }
@@ -38,4 +38,4 @@ app.post('/webhook', async (req, res) => {
     .update('IE')
     .digest('hex');
 
-  const eventTime = momment ? Math.floor(Number(momment) / 1000) : Math.floor(Date
+  const eventTime = momment ? Ma
