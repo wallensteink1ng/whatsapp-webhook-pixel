@@ -22,7 +22,7 @@ app.post('/webhook', async (req, res) => {
     return res.status(200).send('Recebido sem dados relevantes');
   }
 
-  const metaTag = '\u200C'; // marcador invisível usado nos botões do site
+  const metaTag = '\u200C'; // caractere invisível para rastrear leads do Meta
   if (!message.startsWith(metaTag)) {
     console.log('⛔ Ignorado: mensagem não veio de campanha Meta');
     return res.status(200).send('Mensagem fora do Meta ignorada');
@@ -80,4 +80,10 @@ app.post('/webhook', async (req, res) => {
     console.error('❌ Erro ao enviar pro Pixel:', error.response?.data || error.message);
   }
 
-  res
+  res.status(200).send('Evento recebido');
+});
+
+// 🚀 Inicia o servidor
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+});
