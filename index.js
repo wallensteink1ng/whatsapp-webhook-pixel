@@ -22,30 +22,25 @@ app.post('/webhook', async (req, res) => {
     return res.status(200).send('Recebido sem dados relevantes');
   }
 
-  // Verifica marcador invisível do Meta no início da mensagem
   const metaTag = '\u200C';
   if (!message.startsWith(metaTag)) {
     console.log('⛔ Ignorado: mensagem não veio de campanha Meta');
     return res.status(200).send('Mensagem fora do Meta ignorada');
   }
 
-  // Hasheando número e país para o Meta
   const cleanPhone = phone.replace(/\D/g, '');
   const hashedPhone = crypto.createHash('sha256').update(cleanPhone).digest('hex');
   const hashedCountry = crypto.createHash('sha256').update('IE').digest('hex');
   const hashedExternalId = crypto.createHash('sha256').update(cleanPhone).digest('hex');
 
-  // Captura IP real e user-agent do cliente
   const userIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || '1.1.1.1';
   const userAgent = req.headers['user-agent'] || 'WhatsApp-Business-API';
 
-  // Timestamp do evento e ID único
   const eventTime = momment ? Math.floor(Number(momment) / 1000) : Math.floor(Date.now() / 1000);
   const eventId = `${messageId}_${phone}`;
 
-  // Variáveis de ambiente para segurança
-  const pixelID = process.env.PIXEL_ID;
-  const accessToken = process.env.ACCESS_TOKEN;
+  const pixelID = '1894086348055772';
+  const accessToken = 'EAAOqjZBgr90YBOxXKae3ZCLuNVnHeZCnrBs6ZAucRAJweq6xzulUX9Cb0nLouYWKBB5pNLz7ZAEBa1sbxiwmOcILcnh1vyud3no4hWuYbFobafl5AhVp2R5uIkR3t7YT8x21swZCIcBbL6lutX9ZCD6moLtXYJ8jTmGPp52wF5ZBGinDQrcoc00dKd8JZAMHe2UjhkwZDZD';
 
   const event = {
     event_name: 'MessageSent',
