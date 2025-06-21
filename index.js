@@ -22,7 +22,7 @@ app.post('/webhook', async (req, res) => {
     return res.status(200).send('Recebido sem dados relevantes');
   }
 
-  const metaTag = '\u200C'; // caractere invisível
+  const metaTag = '\u200C'; // marcador invisível
   if (!message.startsWith(metaTag)) {
     console.log('⛔ Ignorado: mensagem não veio de campanha Meta');
     return res.status(200).send('Mensagem fora do Meta ignorada');
@@ -63,8 +63,7 @@ app.post('/webhook', async (req, res) => {
       message_id: messageId,
       cidade: 'Dublin',
       regiao: 'Leinster'
-    },
-    test_event_code: 'TEST2484' // ← Aqui está o código de teste
+    }
   };
 
   try {
