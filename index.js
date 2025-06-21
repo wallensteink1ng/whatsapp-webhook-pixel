@@ -22,7 +22,7 @@ app.post('/webhook', async (req, res) => {
     return res.status(200).send('Recebido sem dados relevantes');
   }
 
-  const metaTag = '\u200C';
+  const metaTag = '\u200C'; // caractere invisível
   if (!message.startsWith(metaTag)) {
     console.log('⛔ Ignorado: mensagem não veio de campanha Meta');
     return res.status(200).send('Mensagem fora do Meta ignorada');
@@ -33,14 +33,14 @@ app.post('/webhook', async (req, res) => {
   const hashedCountry = crypto.createHash('sha256').update('IE').digest('hex');
   const hashedExternalId = crypto.createHash('sha256').update(cleanPhone).digest('hex');
 
-  const userIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || '1.1.1.1';
+  const userIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.connection?.remoteAddress || '1.1.1.1';
   const userAgent = req.headers['user-agent'] || 'WhatsApp-Business-API';
 
   const eventTime = momment ? Math.floor(Number(momment) / 1000) : Math.floor(Date.now() / 1000);
   const eventId = `${messageId}_${phone}`;
 
-  const pixelID = '1894086348055772';
-  const accessToken = 'EAAOqjZBgr90YBOxXKae3ZCLuNVnHeZCnrBs6ZAucRAJweq6xzulUX9Cb0nLouYWKBB5pNLz7ZAEBa1sbxiwmOcILcnh1vyud3no4hWuYbFobafl5AhVp2R5uIkR3t7YT8x21swZCIcBbL6lutX9ZCD6moLtXYJ8jTmGPp52wF5ZBGinDQrcoc00dKd8JZAMHe2UjhkwZDZD';
+  const pixelID = process.env.PIXEL_ID || '1894086348055772';
+  const accessToken = process.env.ACCESS_TOKEN || 'EAAOqjZBgr90YBOxXKae3ZCLuNVnHeZCnrBs6ZAucRAJweq6xzulUX9Cb0nLouYWKBB5pNLz7ZAEBa1sbxiwmOcILcnh1vyud3no4hWuYbFobafl5AhVp2R5uIkR3t7YT8x21swZCIcBbL6lutX9ZCD6moLtXYJ8jTmGPp52wF5ZBGinDQrcoc00dKd8JZAMHe2UjhkwZDZD';
 
   const event = {
     event_name: 'MessageSent',
