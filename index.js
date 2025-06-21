@@ -63,7 +63,8 @@ app.post('/webhook', async (req, res) => {
       message_id: messageId,
       cidade: 'Dublin',
       regiao: 'Leinster'
-    }
+    },
+    test_event_code: 'TEST2484' // ← Aqui está o código de teste
   };
 
   try {
