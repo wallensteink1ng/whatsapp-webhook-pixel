@@ -45,7 +45,7 @@ app.post('/webhook', async (req, res) => {
   const event = {
     event_name: 'MessageSent',
     event_time: eventTime,
-    event_source_url: 'https://barbaracleaning.ie',
+    event_source_url: 'https://barbaracleaning.com', // <- corrigido aqui
     action_source: 'system_generated',
     event_id: eventId,
     user_data: {
