@@ -36,16 +36,20 @@ app.post('/webhook', async (req, res) => {
   const userIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.connection?.remoteAddress || '1.1.1.1';
   const userAgent = req.headers['user-agent'] || 'WhatsApp-Business-API';
 
+  // Captura dos IDs de navegador e clique (passados do frontend)
+  const fbc = req.body?.fbc || '';
+  const fbp = req.body?.fbp || '';
+
   const eventTime = momment ? Math.floor(Number(momment) / 1000) : Math.floor(Date.now() / 1000);
   const eventId = `${messageId}_${phone}`;
 
   const pixelID = process.env.PIXEL_ID || '1894086348055772';
-  const accessToken = process.env.ACCESS_TOKEN || 'EAAOqjZBgr90YBOxXKae3ZCLuNVnHeZCnrBs6ZAucRAJweq6xzulUX9Cb0nLouYWKBB5pNLz7ZAEBa1sbxiwmOcILcnh1vyud3no4hWuYbFobafl5AhVp2R5uIkR3t7YT8x21swZCIcBbL6lutX9ZCD6moLtXYJ8jTmGPp52wF5ZBGinDQrcoc00dKd8JZAMHe2UjhkwZDZD';
+  const accessToken = process.env.ACCESS_TOKEN || 'SEU_ACCESS_TOKEN_AQUI';
 
   const event = {
     event_name: 'MessageSent',
     event_time: eventTime,
-    event_source_url: 'https://barbaracleaning.com', // <- corrigido aqui
+    event_source_url: 'https://barbaracleaning.com',
     action_source: 'system_generated',
     event_id: eventId,
     user_data: {
@@ -53,7 +57,9 @@ app.post('/webhook', async (req, res) => {
       country: hashedCountry,
       external_id: hashedExternalId,
       client_ip_address: userIp,
-      client_user_agent: userAgent
+      client_user_agent: userAgent,
+      fbc: fbc,
+      fbp: fbp
     },
     custom_data: {
       message: message,
