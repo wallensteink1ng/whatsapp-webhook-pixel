@@ -36,7 +36,6 @@ app.post('/webhook', async (req, res) => {
   const userIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.connection?.remoteAddress || '1.1.1.1';
   const userAgent = req.headers['user-agent'] || 'WhatsApp-Business-API';
 
-  // Captura dos identificadores do Meta (se forem enviados via frontend)
   const fbc = req.body?.fbc || '';
   const fbp = req.body?.fbp || '';
 
@@ -44,7 +43,7 @@ app.post('/webhook', async (req, res) => {
   const eventId = `${messageId}_${phone}`;
 
   const pixelID = '1894086348055772';
-  const accessToken = 'EAAOqjZBgr90YBOxXKae3ZCLuNVnHeZCnrBs6ZAucRAJweq6xzulUX9Cb0nLouYWKBB5pNLz7ZAEBa1sbxiwmOcILcnh1vyud3no4hWuYbFobafl5AhVp2R5uIkR3t7YT8x21swZCIcBbL6lutX9ZCD6moLtXYJ8jTmGPp52wF5ZBGinDQrcoc00dKd8JZAMHe2UjhkwZDZD';
+  const accessToken = 'EAAOqjZBgr90YBO9CC5T4gthsK0dyYYecZB0nv890ZCN99hjAF9q9pUTNDTsaYCYuEZC7ulCGLY93lo8f2MLpUskZBpQXEgGABGsKPFflNeWL63SlHEfsdF40qhoC0ExRhfdLbXxYt0vgmszAZBT8hJ7A0qGDeIPCckXotO4UAhD1gvl512Gd7gb7dC554K6gYiEgZDZD';
 
   const event = {
     event_name: 'MessageSent',
