@@ -1,4 +1,4 @@
-// index.js - Webhook Meta Pixel com sid invisível (HTML comment)
+// index.js - Webhook Meta Pixel com sid codificado invisível (Unicode)
 
 const express = require('express');
 const axios = require('axios');
@@ -7,11 +7,10 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 const processedEvents = new Set();
-const sessionStore = new Map(); // Armazena fbc/fbp por session ID
+const sessionStore = new Map();
 
 app.use(express.json());
 
-// ✅ Prétrack via sessionId
 app.post('/pretrack', (req, res) => {
   const { sessionId, fbc, fbp } = req.body || {};
   if (!sessionId) return res.status(400).send('sessionId ausente');
@@ -20,7 +19,18 @@ app.post('/pretrack', (req, res) => {
   res.status(200).send('Pré-rastreamento salvo');
 });
 
-// ✅ Webhook principal
+function decodeInvisible(unicodeStr) {
+  const bits = unicodeStr.replace(/[^​‌]/g, '').match(/.{1,8}/g);
+  if (!bits) return '';
+  return bits
+    .map(b =>
+      String.fromCharCode(
+        b.split('').map(c => (c === '‌' ? '1' : '0')).join('') >>> 0
+      )
+    )
+    .join('');
+}
+
 app.post('/webhook', async (req, res) => {
   const data = req.body;
   console.log('📩 Webhook recebeu algo:\n', data);
@@ -50,13 +60,13 @@ app.post('/webhook', async (req, res) => {
   }
   processedEvents.add(eventId);
 
-  // Extrai sessionId da mensagem: <!--sessionId-->
+  // Extrai sid invisível
   let sessionId = '';
   try {
-    const match = message.match(/<!--([a-z0-9]+)-->/i);
-    if (match) sessionId = match[1];
+    const invisibles = message.replace(/^.*?([\u200B\u200C]{32,})$/, '$1');
+    sessionId = decodeInvisible(invisibles);
   } catch (e) {
-    console.warn('⚠️ Erro ao extrair sessionId:', e);
+    console.warn('⚠️ Erro ao decodificar sessionId invisível:', e);
   }
 
   const cookies = sessionStore.get(sessionId) || {};
