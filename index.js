@@ -1,4 +1,4 @@
-// index.js - Webhook Meta Pixel com pré-rastreamento (pretrack) para fbc/fbp
+// index.js - Webhook Meta Pixel com prétrack via session ID em vez de número
 
 const express = require('express');
 const axios = require('axios');
@@ -7,20 +7,20 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 const processedEvents = new Set();
-const cookieStore = new Map(); // Armazena fbc/fbp temporariamente por telefone
+const sessionStore = new Map(); // Armazena fbc/fbp por session ID
 
 app.use(express.json());
 
-// ✅ Rota para receber cookies antes do envio da mensagem
+// ✅ Prétrack via sessionId (em vez de número do usuário)
 app.post('/pretrack', (req, res) => {
-  const { phone, fbc, fbp } = req.body || {};
-  if (!phone) return res.status(400).send('Telefone ausente');
-  cookieStore.set(phone, { fbc, fbp, timestamp: Date.now() });
-  console.log(`💾 Cookies armazenados para ${phone}:`, { fbc, fbp });
+  const { sessionId, fbc, fbp } = req.body || {};
+  if (!sessionId) return res.status(400).send('sessionId ausente');
+  sessionStore.set(sessionId, { fbc, fbp, timestamp: Date.now() });
+  console.log(`💾 Cookies armazenados para session ${sessionId}:`, { fbc, fbp });
   res.status(200).send('Pré-rastreamento salvo');
 });
 
-// ✅ Rota principal para processar a mensagem recebida
+// ✅ Webhook principal
 app.post('/webhook', async (req, res) => {
   const data = req.body;
   console.log('📩 Webhook recebeu algo:\n', data);
@@ -50,8 +50,16 @@ app.post('/webhook', async (req, res) => {
   }
   processedEvents.add(eventId);
 
-  // Busca cookies salvos no pretrack
-  const cookies = cookieStore.get(phone) || {};
+  // Extrai sessionId da mensagem (ex: ...&sid=abc123)
+  let sessionId = '';
+  try {
+    const match = message.match(/&sid=([^&\s]+)/);
+    if (match) sessionId = decodeURIComponent(match[1]);
+  } catch (e) {
+    console.warn('⚠️ Erro ao extrair sessionId:', e);
+  }
+
+  const cookies = sessionStore.get(sessionId) || {};
   const fbc = cookies.fbc || '';
   const fbp = cookies.fbp || '';
 
