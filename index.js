@@ -1,4 +1,4 @@
-// index.js - Webhook Meta Pixel com sid invisível e CORS liberado
+// index.js - Webhook completo com decodificação invisível e lookup de cookies
 
 const express = require('express');
 const axios = require('axios');
@@ -6,42 +6,31 @@ const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-const processedEvents = new Set();
-const sessionStore = new Map();
-
-// ✅ Libera requisições do seu site (barbaracleaning.com)
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  next();
-});
-
 app.use(express.json());
 
-// ✅ Rota de pré-rastreamento
-app.post('/pretrack', (req, res) => {
-  const { sessionId, fbc, fbp } = req.body || {};
-  if (!sessionId) return res.status(400).send('sessionId ausente');
-  sessionStore.set(sessionId, { fbc, fbp, timestamp: Date.now() });
-  console.log('🔁 [pretrack] sessionId recebido:', sessionId);
-  console.log(`💾 Cookies armazenados para session ${sessionId}:`, { fbc, fbp });
-  res.status(200).send('Pré-rastreamento salvo');
-});
+const sessionStore = new Map(); // Armazena sessionId -> cookies
 
-// ✅ Decodifica string invisível
-function decodeInvisible(unicodeStr) {
-  const bits = unicodeStr.replace(/[^\u200B\u200C]/g, '').match(/.{1,8}/g);
-  if (!bits) return '';
-  return bits
-    .map(b =>
-      String.fromCharCode(
-        b.split('').map(c => (c === '\u200C' ? '1' : '0')).join('') >>> 0
-      )
-    )
-    .join('');
+// Decodifica invisível (\u200B e \u200C) para texto real
+function decodeInvisible(text) {
+  const binary = [...text].map(c => {
+    if (c === '\u200B') return '0';
+    if (c === '\u200C') return '1';
+    return ''; // ignora outros
+  }).join('');
+
+  const chars = binary.match(/.{8}/g) || [];
+  return chars.map(bin => String.fromCharCode(parseInt(bin, 2))).join('');
 }
 
-// ✅ Webhook principal
+// Endpoint opcional para salvar fbc/fbp manualmente
+app.post('/pretrack', (req, res) => {
+  const { sessionId, fbc, fbp } = req.body;
+  if (!sessionId) return res.status(400).send('Missing sessionId');
+  sessionStore.set(sessionId, { fbc, fbp });
+  console.log('💾 [pretrack] sessionId salvo:', sessionId);
+  res.status(200).send('ok');
+});
+
 app.post('/webhook', async (req, res) => {
   const data = req.body;
   console.log('📩 Webhook recebeu algo:\n', data);
@@ -55,48 +44,35 @@ app.post('/webhook', async (req, res) => {
 
   if (!message || !phone) {
     console.log('⚠️ Mensagem ou número não detectado');
-    return res.status(200).send('Recebido sem dados relevantes');
+    return res.status(200).send('Ignorado');
   }
 
-  const metaTag = '\u200C';
-  if (!message.startsWith(metaTag)) {
-    console.log('⛔ Ignorado: mensagem não veio de campanha Meta');
-    return res.status(200).send('Mensagem fora do Meta ignorada');
+  // Verifica se veio de campanha Meta
+  if (!message.startsWith('\u200C')) {
+    console.log('⛔ Ignorado: mensagem sem tag invisível inicial');
+    return res.status(200).send('Fora da campanha');
   }
 
-  const eventId = `${messageId}_${phone}`;
-  if (processedEvents.has(eventId)) {
-    console.log('⏩ Evento duplicado ignorado');
-    return res.status(200).send('Evento duplicado');
-  }
-  processedEvents.add(eventId);
+  // Tenta extrair sessionId invisível
+  const sidDecoded = decodeInvisible(message);
+  console.log('🧩 [webhook] sessionId decodificado:', sidDecoded);
 
-  // Extrai sid codificado invisível
-  let sessionId = '';
-  try {
-    const invisibles = message.replace(/^.*?([\u200B\u200C]{32,})$/, '$1');
-    sessionId = decodeInvisible(invisibles);
-    console.log('🧩 [webhook] sessionId decodificado:', sessionId);
-  } catch (e) {
-    console.warn('⚠️ Erro ao decodificar sessionId invisível:', e);
-  }
+  // Busca cookies associados ao sessionId
+  const sessionCookies = sessionStore.get(sidDecoded) || {};
+  const fbc = sessionCookies.fbc || '';
+  const fbp = sessionCookies.fbp || '';
 
-  const cookies = sessionStore.get(sessionId) || {};
-  const fbc = cookies.fbc || '';
-  const fbp = cookies.fbp || '';
+  if (!fbc && !fbp) console.warn('⚠️ Nenhum cookie de rastreamento detectado (fbc/fbp).');
 
-  if (!fbc && !fbp) {
-    console.warn('⚠️ Nenhum cookie de rastreamento detectado (fbc/fbp).');
-  }
-
+  // Prepara dados
   const cleanPhone = phone.replace(/\D/g, '');
   const hashedPhone = crypto.createHash('sha256').update(cleanPhone).digest('hex');
   const hashedCountry = crypto.createHash('sha256').update('IE').digest('hex');
   const hashedExternalId = crypto.createHash('sha256').update(cleanPhone).digest('hex');
-
-  const userIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.connection?.remoteAddress || '1.1.1.1';
+  const userIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || '1.1.1.1';
   const userAgent = req.headers['user-agent'] || 'WhatsApp-Business-API';
   const eventTime = momment ? Math.floor(Number(momment) / 1000) : Math.floor(Date.now() / 1000);
+  const eventId = `${messageId}_${phone}`;
 
   console.log('🧪 Dados para correspondência:', { fbc, fbp, userIp, userAgent });
 
@@ -106,7 +82,7 @@ app.post('/webhook', async (req, res) => {
   const event = {
     event_name: 'MessageSent',
     event_time: eventTime,
-    event_source_url: req.headers['referer'] || 'https://barbaracleaning.com',
+    event_source_url: 'https://barbaracleaning.com',
     action_source: 'system_generated',
     event_id: eventId,
     user_data: {
@@ -115,12 +91,12 @@ app.post('/webhook', async (req, res) => {
       external_id: hashedExternalId,
       client_ip_address: userIp,
       client_user_agent: userAgent,
-      fbc: fbc,
-      fbp: fbp
+      fbc,
+      fbp
     },
     custom_data: {
-      message: message,
-      phone: phone,
+      message,
+      phone,
       sender_name: senderName,
       chat_name: chatName,
       message_id: messageId,
@@ -134,17 +110,12 @@ app.post('/webhook', async (req, res) => {
       `https://graph.facebook.com/v18.0/${pixelID}/events?access_token=${accessToken}`,
       { data: [event] }
     );
-
-    if (response?.data?.events_received === 0) {
-      console.warn('⚠️ Facebook aceitou requisição mas não registrou evento.');
-    } else {
-      console.log('✅ Evento registrado com sucesso:', response.data);
-    }
-  } catch (error) {
-    console.error('❌ Erro ao enviar pro Pixel:', error.response?.data || error.message);
+    console.log('✅ Evento registrado com sucesso:', response.data);
+  } catch (err) {
+    console.error('❌ Erro ao enviar evento:', err.response?.data || err.message);
   }
 
-  res.status(200).send('Evento recebido');
+  res.status(200).send('ok');
 });
 
 app.listen(PORT, () => {
