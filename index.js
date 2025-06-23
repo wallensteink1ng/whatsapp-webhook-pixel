@@ -1,4 +1,4 @@
-// index.js - Webhook Meta Pixel atualizado para extrair fbc/fbp da mensagem
+// index.js - Webhook Meta Pixel com pré-rastreamento (pretrack) para fbc/fbp
 
 const express = require('express');
 const axios = require('axios');
@@ -7,9 +7,20 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 const processedEvents = new Set();
+const cookieStore = new Map(); // Armazena fbc/fbp temporariamente por telefone
 
 app.use(express.json());
 
+// ✅ Rota para receber cookies antes do envio da mensagem
+app.post('/pretrack', (req, res) => {
+  const { phone, fbc, fbp } = req.body || {};
+  if (!phone) return res.status(400).send('Telefone ausente');
+  cookieStore.set(phone, { fbc, fbp, timestamp: Date.now() });
+  console.log(`💾 Cookies armazenados para ${phone}:`, { fbc, fbp });
+  res.status(200).send('Pré-rastreamento salvo');
+});
+
+// ✅ Rota principal para processar a mensagem recebida
 app.post('/webhook', async (req, res) => {
   const data = req.body;
   console.log('📩 Webhook recebeu algo:\n', data);
@@ -39,20 +50,10 @@ app.post('/webhook', async (req, res) => {
   }
   processedEvents.add(eventId);
 
-  // Extrai fbc/fbp da própria mensagem, caso estejam colados no final
-  let fbcFromText = '';
-  let fbpFromText = '';
-  try {
-    const queryMatch = message.match(/&fbc=([^&\s]+)/);
-    const queryMatch2 = message.match(/&fbp=([^&\s]+)/);
-    if (queryMatch) fbcFromText = decodeURIComponent(queryMatch[1]);
-    if (queryMatch2) fbpFromText = decodeURIComponent(queryMatch2[1]);
-  } catch (e) {
-    console.warn('⚠️ Erro ao extrair fbc/fbp da mensagem:', e);
-  }
-
-  const fbc = data?.fbc || fbcFromText;
-  const fbp = data?.fbp || fbpFromText;
+  // Busca cookies salvos no pretrack
+  const cookies = cookieStore.get(phone) || {};
+  const fbc = cookies.fbc || '';
+  const fbp = cookies.fbp || '';
 
   if (!fbc && !fbp) {
     console.warn('⚠️ Nenhum cookie de rastreamento detectado (fbc/fbp).');
