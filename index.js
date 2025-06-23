@@ -1,8 +1,13 @@
+// index.js - Webhook Meta Pixel com melhorias de produção, rastreamento e segurança
+
 const express = require('express');
 const axios = require('axios');
 const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 10000;
+
+// Memória temporária para evitar eventos duplicados (pode ser substituído por Redis se desejar persistência)
+const processedEvents = new Set();
 
 app.use(express.json());
 
@@ -22,33 +27,56 @@ app.post('/webhook', async (req, res) => {
     return res.status(200).send('Recebido sem dados relevantes');
   }
 
-  const metaTag = '\u200C'; // marcador invisível
+  // Verifica se mensagem veio de campanha Meta (prefixo invisível)
+  const metaTag = '\u200C';
   if (!message.startsWith(metaTag)) {
     console.log('⛔ Ignorado: mensagem não veio de campanha Meta');
     return res.status(200).send('Mensagem fora do Meta ignorada');
   }
 
+  // Garante que o mesmo evento não seja enviado duas vezes
+  const eventId = `${messageId}_${phone}`;
+  if (processedEvents.has(eventId)) {
+    console.log('⏩ Evento duplicado ignorado');
+    return res.status(200).send('Evento duplicado');
+  }
+  processedEvents.add(eventId);
+
+  // Extrai parâmetros da mensagem
+  const queryPart = message.split('?')[1] || '';
+  const urlParams = new URLSearchParams(queryPart);
+  const fbcFromUrl = urlParams.get('fbc') || '';
+  const fbpFromUrl = urlParams.get('fbp') || '';
+
+  const fbc = data?.fbc || fbcFromUrl;
+  const fbp = data?.fbp || fbpFromUrl;
+
+  if (!fbc && !fbp) {
+    console.warn('⚠️ Nenhum cookie de rastreamento detectado (fbc/fbp).');
+  }
+
+  // Hash dos dados sensíveis
   const cleanPhone = phone.replace(/\D/g, '');
   const hashedPhone = crypto.createHash('sha256').update(cleanPhone).digest('hex');
   const hashedCountry = crypto.createHash('sha256').update('IE').digest('hex');
   const hashedExternalId = crypto.createHash('sha256').update(cleanPhone).digest('hex');
 
+  // Dados técnicos
   const userIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.connection?.remoteAddress || '1.1.1.1';
   const userAgent = req.headers['user-agent'] || 'WhatsApp-Business-API';
-
-  const fbc = req.body?.fbc || '';
-  const fbp = req.body?.fbp || '';
-
   const eventTime = momment ? Math.floor(Number(momment) / 1000) : Math.floor(Date.now() / 1000);
-  const eventId = `${messageId}_${phone}`;
 
+  // Debug extra
+  console.log('🧪 Dados para correspondência:', { fbc, fbp, userIp, userAgent });
+
+  // Configuração do evento
   const pixelID = '1894086348055772';
   const accessToken = 'EAAOqjZBgr90YBO9CC5T4gthsK0dyYYecZB0nv890ZCN99hjAF9q9pUTNDTsaYCYuEZC7ulCGLY93lo8f2MLpUskZBpQXEgGABGsKPFflNeWL63SlHEfsdF40qhoC0ExRhfdLbXxYt0vgmszAZBT8hJ7A0qGDeIPCckXotO4UAhD1gvl512Gd7gb7dC554K6gYiEgZDZD';
 
   const event = {
     event_name: 'MessageSent',
     event_time: eventTime,
-    event_source_url: 'https://barbaracleaning.com',
+    event_source_url: req.headers['referer'] || 'https://barbaracleaning.com',
     action_source: 'system_generated',
     event_id: eventId,
     user_data: {
@@ -71,13 +99,18 @@ app.post('/webhook', async (req, res) => {
     }
   };
 
+  // Envia para o Meta Pixel (Conversions API)
   try {
-    console.log('📤 Enviando pro Pixel:', message);
     const response = await axios.post(
       `https://graph.facebook.com/v18.0/${pixelID}/events?access_token=${accessToken}`,
       { data: [event] }
     );
-    console.log('✅ Evento enviado com sucesso:', response.data);
+
+    if (response?.data?.events_received === 0) {
+      console.warn('⚠️ Facebook aceitou requisição mas não registrou evento.');
+    } else {
+      console.log('✅ Evento registrado com sucesso:', response.data);
+    }
   } catch (error) {
     console.error('❌ Erro ao enviar pro Pixel:', error.response?.data || error.message);
   }
