@@ -23,18 +23,19 @@ app.post('/pretrack', (req, res) => {
   const { sessionId, fbc, fbp } = req.body || {};
   if (!sessionId) return res.status(400).send('sessionId ausente');
   sessionStore.set(sessionId, { fbc, fbp, timestamp: Date.now() });
+  console.log('🔁 [pretrack] sessionId recebido:', sessionId);
   console.log(`💾 Cookies armazenados para session ${sessionId}:`, { fbc, fbp });
   res.status(200).send('Pré-rastreamento salvo');
 });
 
 // ✅ Decodifica string invisível
 function decodeInvisible(unicodeStr) {
-  const bits = unicodeStr.replace(/[^​‌]/g, '').match(/.{1,8}/g);
+  const bits = unicodeStr.replace(/[^\u200B\u200C]/g, '').match(/.{1,8}/g);
   if (!bits) return '';
   return bits
     .map(b =>
       String.fromCharCode(
-        b.split('').map(c => (c === '‌' ? '1' : '0')).join('') >>> 0
+        b.split('').map(c => (c === '\u200C' ? '1' : '0')).join('') >>> 0
       )
     )
     .join('');
@@ -73,8 +74,9 @@ app.post('/webhook', async (req, res) => {
   // Extrai sid codificado invisível
   let sessionId = '';
   try {
-    const invisibles = message.replace(/^.*?([​‌]{32,})$/, '$1');
+    const invisibles = message.replace(/^.*?([\u200B\u200C]{32,})$/, '$1');
     sessionId = decodeInvisible(invisibles);
+    console.log('🧩 [webhook] sessionId decodificado:', sessionId);
   } catch (e) {
     console.warn('⚠️ Erro ao decodificar sessionId invisível:', e);
   }
