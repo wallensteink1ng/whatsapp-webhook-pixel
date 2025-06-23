@@ -1,4 +1,4 @@
-// index.js - Webhook Meta Pixel com sid codificado invisível (Unicode)
+// index.js - Webhook Meta Pixel com sid invisível e CORS liberado
 
 const express = require('express');
 const axios = require('axios');
@@ -9,8 +9,16 @@ const PORT = process.env.PORT || 10000;
 const processedEvents = new Set();
 const sessionStore = new Map();
 
+// ✅ Libera requisições do seu site (barbaracleaning.com)
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
+
 app.use(express.json());
 
+// ✅ Rota de pré-rastreamento
 app.post('/pretrack', (req, res) => {
   const { sessionId, fbc, fbp } = req.body || {};
   if (!sessionId) return res.status(400).send('sessionId ausente');
@@ -19,6 +27,7 @@ app.post('/pretrack', (req, res) => {
   res.status(200).send('Pré-rastreamento salvo');
 });
 
+// ✅ Decodifica string invisível
 function decodeInvisible(unicodeStr) {
   const bits = unicodeStr.replace(/[^​‌]/g, '').match(/.{1,8}/g);
   if (!bits) return '';
@@ -31,6 +40,7 @@ function decodeInvisible(unicodeStr) {
     .join('');
 }
 
+// ✅ Webhook principal
 app.post('/webhook', async (req, res) => {
   const data = req.body;
   console.log('📩 Webhook recebeu algo:\n', data);
@@ -60,10 +70,10 @@ app.post('/webhook', async (req, res) => {
   }
   processedEvents.add(eventId);
 
-  // Extrai sid invisível
+  // Extrai sid codificado invisível
   let sessionId = '';
   try {
-    const invisibles = message.replace(/^.*?([\u200B\u200C]{32,})$/, '$1');
+    const invisibles = message.replace(/^.*?([​‌]{32,})$/, '$1');
     sessionId = decodeInvisible(invisibles);
   } catch (e) {
     console.warn('⚠️ Erro ao decodificar sessionId invisível:', e);
