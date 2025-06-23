@@ -1,4 +1,4 @@
-// index.js - Webhook Meta Pixel com prétrack via session ID em vez de número
+// index.js - Webhook Meta Pixel com sid embutido na mensagem [sid:...] em vez de query param
 
 const express = require('express');
 const axios = require('axios');
@@ -50,11 +50,11 @@ app.post('/webhook', async (req, res) => {
   }
   processedEvents.add(eventId);
 
-  // Extrai sessionId da mensagem (ex: ...&sid=abc123)
+  // Extrai sessionId da mensagem: "[sid:XYZ123]"
   let sessionId = '';
   try {
-    const match = message.match(/&sid=([^&\s]+)/);
-    if (match) sessionId = decodeURIComponent(match[1]);
+    const match = message.match(/\[sid:([a-zA-Z0-9]+)\]/);
+    if (match) sessionId = match[1];
   } catch (e) {
     console.warn('⚠️ Erro ao extrair sessionId:', e);
   }
