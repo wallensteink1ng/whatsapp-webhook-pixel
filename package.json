@@ -18,13 +18,19 @@
   "engines": {
     "node": ">=18"
   },
+  "render": {
+    "buildCommand": "npm install",
+    "startCommand": "node index.js"
+  },
   "keywords": [
     "webhook",
     "whatsapp",
-    "pixel",
     "meta",
     "facebook",
-    "conversions-api"
+    "pixel",
+    "conversions-api",
+    "tracking",
+    "express"
   ],
   "author": "Matheus",
   "license": "MIT"
