@@ -1,5 +1,3 @@
-// index.js - Webhook atualizado com CORS e rastreamento
-
 const express = require('express');
 const axios = require('axios');
 const crypto = require('crypto');
@@ -43,8 +41,9 @@ app.post('/webhook', async (req, res) => {
 
   let fbc = data?.fbc || '';
   let fbp = data?.fbp || '';
-  const sessionMatch = message.match(/\u200B(.*?)$/);
 
+  // Tenta extrair sessionId invisível
+  const sessionMatch = message.match(/\u200B(.*?)$/);
   if (sessionMatch) {
     const sessionEncoded = sessionMatch[1];
     try {
@@ -60,7 +59,12 @@ app.post('/webhook', async (req, res) => {
   const cleanPhone = phone.replace(/\D/g, '');
   const hashedPhone = crypto.createHash('sha256').update(cleanPhone).digest('hex');
   const hashedCountry = crypto.createHash('sha256').update('IE').digest('hex');
-  const hashedExternalId = crypto.createHash('sha256').update(cleanPhone).digest('hex');
+
+  // Leitura de external_id via cookie
+  const cookieHeader = req.headers.cookie || '';
+  const externalIdMatch = cookieHeader.match(/external_id=([^;]+)/);
+  const externalIdRaw = externalIdMatch ? externalIdMatch[1] : cleanPhone;
+  const hashedExternalId = crypto.createHash('sha256').update(externalIdRaw).digest('hex');
 
   const userIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.connection?.remoteAddress || '1.1.1.1';
   const userAgent = req.headers['user-agent'] || 'WhatsApp-Business-API';
@@ -75,7 +79,7 @@ app.post('/webhook', async (req, res) => {
     event_name: 'MessageSent',
     event_time: eventTime,
     event_source_url: req.headers['referer'] || 'https://barbaracleaning.com',
-    action_source: 'system_generated',
+    action_source: 'chat',
     event_id: eventId,
     user_data: {
       ph: hashedPhone,
