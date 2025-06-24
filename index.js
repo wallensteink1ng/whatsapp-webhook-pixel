@@ -42,7 +42,6 @@ app.post('/webhook', async (req, res) => {
   let fbc = data?.fbc || '';
   let fbp = data?.fbp || '';
 
-  // Tenta extrair sessionId invisível
   const sessionMatch = message.match(/\u200B(.*?)$/);
   if (sessionMatch) {
     const sessionEncoded = sessionMatch[1];
@@ -60,7 +59,6 @@ app.post('/webhook', async (req, res) => {
   const hashedPhone = crypto.createHash('sha256').update(cleanPhone).digest('hex');
   const hashedCountry = crypto.createHash('sha256').update('IE').digest('hex');
 
-  // Leitura de external_id via cookie
   const cookieHeader = req.headers.cookie || '';
   const externalIdMatch = cookieHeader.match(/external_id=([^;]+)/);
   const externalIdRaw = externalIdMatch ? externalIdMatch[1] : cleanPhone;
@@ -117,6 +115,13 @@ app.post('/webhook', async (req, res) => {
   }
 
   res.status(200).send('Evento recebido');
+});
+
+// 🔧 Endpoint adicional para /pretrack (debug de cookies do site)
+app.post('/pretrack', (req, res) => {
+  const { sessionId, fbc, fbp } = req.body;
+  console.log('📬 [pretrack] recebido:', { sessionId, fbc, fbp });
+  res.status(200).send('pretrack ok');
 });
 
 app.listen(PORT, () => {
