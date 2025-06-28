@@ -1,67 +1,77 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const axios = require('axios');
-const cors = require('cors');
 const crypto = require('crypto');
+const fetch = require('node-fetch');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-const PORT = process.env.PORT || 3000;
-const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
-const PIXEL_ID = process.env.PIXEL_ID;
+const accessToken = process.env.ACCESS_TOKEN;
+const pixelId = process.env.PIXEL_ID;
 
-function sha256(data) {
-  return crypto.createHash('sha256').update(data.trim().toLowerCase()).digest('hex');
+function hashSha256(value) {
+  return crypto.createHash('sha256').update(value).digest('hex');
 }
 
 app.post('/send', async (req, res) => {
   try {
-    const { phone, service, airbnb, eircode, value } = req.body;
+    const { phone, service_type, is_airbnb, eircode, value } = req.body;
+    const fbc = req.body.fbc || '';
+    const fbp = req.body.fbp || '';
 
-    if (!phone) {
-      return res.status(400).json({ error: 'Número de telefone ausente' });
-    }
+    const user_data = {
+      ph: hashSha256(phone),
+      client_ip_address: req.ip,
+      client_user_agent: req.get('User-Agent'),
+      fbc,
+      fbp,
+      external_id: hashSha256(phone),
+    };
+
+    const custom_data = {
+      service_type,
+      is_airbnb,
+      eircode: eircode?.toUpperCase() || null,
+      value: parseFloat(value) || null,
+      currency: 'EUR',
+    };
 
     const payload = {
       data: [
         {
           event_name: 'BookingConfirmed',
           event_time: Math.floor(Date.now() / 1000),
-          event_source_url: 'https://barbaracleaning.com',
           action_source: 'website',
-          user_data: {
-            ph: sha256(phone),
-            client_ip_address: req.ip,
-            client_user_agent: req.headers['user-agent'],
-            fbc: req.body.fbc || '',
-            fbp: req.body.fbp || '',
-            country: 'IE',
-            city: '',
-            zip: eircode || ''
-          },
-          custom_data: {
-            service_type: service,
-            is_airbnb: airbnb === 'Sim',
-            service_value: value || ''
-          }
-        }
-      ]
+          user_data,
+          custom_data
+        },
+      ],
     };
 
-    const url = `https://graph.facebook.com/v18.0/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`;
-    const response = await axios.post(url, payload);
+    const response = await fetch(`https://graph.facebook.com/v18.0/${pixelId}/events?access_token=${accessToken}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-    console.log('Evento enviado com sucesso:', response.data);
-    res.status(200).json({ success: true });
-  } catch (err) {
-    console.error('[ERRO] Falha ao enviar:', err.response?.data || err.message);
-    res.status(500).json({ error: 'Erro ao enviar evento para o Facebook.' });
+    const result = await response.json();
+    if (!response.ok) {
+      console.error('[ERRO] Falha ao enviar:', result);
+      return res.status(500).json({ success: false, error: result });
+    }
+
+    console.log('[OK] Evento enviado com sucesso:', result);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[ERRO] Erro inesperado:', error);
+    res.status(500).json({ success: false, error: 'Erro inesperado no servidor.' });
   }
 });
 
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
