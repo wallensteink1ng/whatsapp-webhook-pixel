@@ -7,7 +7,7 @@ require('dotenv').config();
 
 const app = express();
 
-// ✅ CORS liberado para todos os domínios (teste)
+// ✅ CORS liberado para todos os domínios (uso controlado)
 app.use(cors({
   origin: '*',
   methods: ['POST'],
@@ -28,6 +28,7 @@ app.post('/send', async (req, res) => {
     const { phone, service_type, is_airbnb, eircode, value } = req.body;
     const fbc = req.body.fbc || '';
     const fbp = req.body.fbp || '';
+    const event_id = req.body.event_id || `booking-${Date.now()}`;
 
     const user_data = {
       ph: hashSha256(phone),
@@ -51,6 +52,7 @@ app.post('/send', async (req, res) => {
         {
           event_name: 'BookingConfirmed',
           event_time: Math.floor(Date.now() / 1000),
+          event_id,
           action_source: 'website',
           user_data,
           custom_data
@@ -78,7 +80,6 @@ app.post('/send', async (req, res) => {
   }
 });
 
-// ✅ Porta obrigatória para Render
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
