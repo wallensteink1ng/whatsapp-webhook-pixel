@@ -7,7 +7,7 @@ require('dotenv').config();
 
 const app = express();
 
-// ✅ CORS ajustado para produção
+// ✅ CORS configurado para aceitar seu domínio
 app.use(cors({
   origin: 'https://barbaracleaning.com',
   methods: ['POST'],
@@ -72,3 +72,14 @@ app.post('/send', async (req, res) => {
 
     console.log('[OK] Evento enviado com sucesso:', result);
     res.json({ success: true });
+  } catch (error) {
+    console.error('[ERRO] Erro inesperado:', error);
+    res.status(500).json({ success: false, error: 'Erro inesperado no servidor.' });
+  }
+});
+
+// ✅ IMPORTANTE: essa chave de fechamento estava faltando
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});
