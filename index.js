@@ -7,9 +7,9 @@ require('dotenv').config();
 
 const app = express();
 
-// ✅ CORS configurado para aceitar seu domínio
+// ✅ CORS liberado para todos os domínios (teste)
 app.use(cors({
-  origin: 'https://barbaracleaning.com',
+  origin: '*',
   methods: ['POST'],
   allowedHeaders: ['Content-Type']
 }));
@@ -78,7 +78,7 @@ app.post('/send', async (req, res) => {
   }
 });
 
-// ✅ Porta obrigatória para o Render funcionar corretamente
+// ✅ Porta obrigatória para Render
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
