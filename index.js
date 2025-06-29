@@ -78,8 +78,8 @@ app.post('/send', async (req, res) => {
   }
 });
 
-// ✅ IMPORTANTE: essa chave de fechamento estava faltando
-const PORT = process.env.PORT || 3000;
+// ✅ Porta obrigatória para o Render funcionar corretamente
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
