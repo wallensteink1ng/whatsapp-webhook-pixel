@@ -6,7 +6,14 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+
+// ✅ CORS ajustado para produção
+app.use(cors({
+  origin: 'https://barbaracleaning.com',
+  methods: ['POST'],
+  allowedHeaders: ['Content-Type']
+}));
+
 app.use(bodyParser.json());
 
 const accessToken = process.env.ACCESS_TOKEN;
@@ -65,13 +72,3 @@ app.post('/send', async (req, res) => {
 
     console.log('[OK] Evento enviado com sucesso:', result);
     res.json({ success: true });
-  } catch (error) {
-    console.error('[ERRO] Erro inesperado:', error);
-    res.status(500).json({ success: false, error: 'Erro inesperado no servidor.' });
-  }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
